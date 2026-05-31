@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'footer.dart'; // Menghubungkan komponen Footer terpisah
+import 'header.dart'; // Menghubungkan komponen Header terpisah
 import 'main.dart'; // Menghubungkan balik ke LoginPage saat logout
+import 'scanner.dart'; // Menghubungkan komponen Scanner baru yang terpisah
 
 class DashboardAdminPage extends StatefulWidget {
   final String nik;
@@ -44,372 +47,211 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
 
     const Color siixBlue = Color(0xFF1E40AF); 
 
+    // 🔄 PARTISI PER-PAGE: Array fungsi untuk memanggil view body sesuai indeks footer
+    final List<Widget> pages = [
+      _buildOverviewContent(sectionTitleColor, siixBlue, cardColor, textPrimary, borderColor), // Index 0: Overview
+      ScannerPage(isDarkMode: _isDarkMode), // Index 1: Halaman Scanner dari scanner.dart
+      _buildPlaceholderContent(cardColor, borderColor, textSecondary), // Index 2: Logs Placeholder
+      _buildPlaceholderContent(cardColor, borderColor, textSecondary), // Index 3: Settings Placeholder
+    ];
+
     return Scaffold(
       backgroundColor: backgroundColor,
       body: Column(
         children: [
-          // 🛑 1. STICKY HEADER GRADIENT WITH USER AVATAR & NOTIFICATION
-          Container(
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 12, 
-              bottom: 16,
-              left: 20,
-              right: 16, 
-            ),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: _isDarkMode 
-                    ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                    : [const Color(0xFF1E40AF), const Color(0xFF2563EB)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _isDarkMode ? Colors.black.withOpacity(0.4) : const Color(0xFF1E40AF).withOpacity(0.12),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                )
-              ]
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center, 
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      // 👤 ICON MUKA USER (KOSONGAN BERGAYA MODERN)
-                      Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
-                        ),
-                        child: Icon(
-                          Icons.person_rounded, 
-                          color: Colors.white.withOpacity(0.9), 
-                          size: 26,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      
-                      // Bagian Teks Admin Info
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _pageTitles[_selectedIndex],
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.65), 
-                                fontSize: 9, 
-                                fontWeight: FontWeight.w900, 
-                                letterSpacing: 1.2
-                              ),
-                            ),
-                            const SizedBox(height: 1),
-                            const Text(
-                              'Administrator', // 🟢 SEKARANG SUDAH UPDATE JADI ADMINISTRATOR SAJA
-                              style: TextStyle(
-                                color: Colors.white, 
-                                fontSize: 18, 
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.5
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // ICON UTILITY POJOK KANAN (NOTIFIKASI, LIGHT/DARK & LOGOUT)
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 🔔 ICON LONCENG NOTIFIKASI JAYA M-BANKING
-                    SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        icon: Icon(
-                          Icons.notifications_none_rounded, 
-                          color: Colors.white.withOpacity(0.9),
-                          size: 20, 
-                        ),
-                        onPressed: () {
-                          // Aksi Klik Notifikasi di sini nanti, Bro
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    // Toggle Dark Mode
-                    SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        icon: Icon(
-                          _isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded, 
-                          color: Colors.white.withOpacity(0.9),
-                          size: 18, 
-                        ),
-                        onPressed: () => setState(() => _isDarkMode = !_isDarkMode),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    // Tombol Logout
-                    SizedBox(
-                      width: 32,
-                      height: 32,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        icon: Icon(
-                          Icons.logout_rounded, 
-                          color: Colors.white.withOpacity(0.9), 
-                          size: 18, 
-                        ),
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => const LoginPage()),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                )
-              ],
-            ),
+          // 🛑 1. STICKY HEADER (DIPANGGIL DARI FILE HEADER.DART)
+          DashboardHeader(
+            pageTitle: _pageTitles[_selectedIndex],
+            isDarkMode: _isDarkMode,
+            onThemeToggle: () => setState(() => _isDarkMode = !_isDarkMode),
+            onLogout: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginPage()),
+              );
+            },
           ),
 
-          // 📜 2. SCROLLABLE CONTENT AREA
+          // 📜 2. SCROLLABLE CONTENT AREA (Otomatis berubah sesuai tab footer tanpa merusak code)
           Expanded(
-            child: _selectedIndex == 0
-                ? SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(vertical: 22.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        
-                        // 💳 SLIDE CARD UTAMA (PANJANG KETINGGIAN DINAIKKAN, FULL WIDTH BANNER)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                          child: Text(
-                            'INFORMASI OTORISASI',
-                            style: TextStyle(
-                              fontSize: 11, 
-                              fontWeight: FontWeight.w900, 
-                              color: sectionTitleColor, // Menggunakan warna adaptif (Hitam pekat di light mode)
-                              letterSpacing: 1.2
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        
-                        // Area Slide Card NIK (Tinggi dipanjangkan dari 115 ke 125)
-                        SizedBox(
-                          height: 125,
-                          child: PageView(
-                            controller: _pageController,
-                            physics: const BouncingScrollPhysics(),
-                            onPageChanged: (int page) {
-                              setState(() {
-                                _currentPage = page; 
-                              });
-                            },
-                            children: [
-                              _buildSlideCard3DFull(
-                                Icons.shield_rounded, 
-                                'NIK: ${widget.nik}', 
-                                'Otorisasi: Super Admin Level', 
-                                _isDarkMode 
-                                    ? [const Color(0xFF1E40AF), const Color(0xFF0F172A)] 
-                                    : [const Color(0xFF1E40AF), const Color(0xFF3B82F6)], 
-                              ),
-                              _buildSlideCard3DFull(
-                                Icons.verified_user_rounded, 
-                                'Sistem Koneksi', 
-                                'Status: SAP Database Terhubung', 
-                                _isDarkMode 
-                                    ? [const Color(0xFF065F46), const Color(0xFF0F172A)] 
-                                    : [const Color(0xFF10B981), const Color(0xFF059669)], 
-                              ),
-                              _buildSlideCard3DFull(
-                                Icons.developer_mode_rounded, 
-                                'App Environment', 
-                                'Mode: Production Verified', 
-                                _isDarkMode 
-                                    ? [const Color(0xFF7C2D12), const Color(0xFF0F172A)] 
-                                    : [const Color(0xFFF59E0B), const Color(0xFFD97706)], 
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 12),
-                        
-                        // 🟢 ANIMATED DOT INDICATOR DI BAWAH SLIDE CARD
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(3, (index) => AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            margin: const EdgeInsets.symmetric(horizontal: 3.0),
-                            height: 5,
-                            width: _currentPage == index ? 14 : 5, 
-                            decoration: BoxDecoration(
-                              color: _currentPage == index 
-                                  ? (_isDarkMode ? Colors.blue.shade400 : siixBlue)
-                                  : (_isDarkMode ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          )),
-                        ),
-                        
-                        const SizedBox(height: 28),
-                        
-                        // Judul Section Menu Control
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                          child: Text(
-                            'MAIN CONTROL SYSTEM',
-                            style: TextStyle(
-                              fontSize: 11, 
-                              fontWeight: FontWeight.w900, 
-                              color: sectionTitleColor, // Menggunakan warna adaptif (Hitam pekat di light mode)
-                              letterSpacing: 1.2
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // 📱 MAIN CONTROL GRID (FULL ICON SOLID BACKGROUND, ICON PUTIH MURNI)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: GridView.count(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(), 
-                            crossAxisCount: 4, 
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 20,
-                            childAspectRatio: 0.82, 
-                            children: [
-                              _customGridItem(Icons.people_outline_rounded, 'User Access', const Color(0xFF2563EB), cardColor, textPrimary, borderColor, () {}),
-                              _customGridItem(Icons.layers_outlined, 'CRUD Part', const Color(0xFFF97316), cardColor, textPrimary, borderColor, () {}),
-                              _customGridItem(Icons.crop_free_rounded, 'Scanner', const Color(0xFF10B981), cardColor, textPrimary, borderColor, () {
-                                setState(() { _selectedIndex = 1; });
-                              }),
-                              _customGridItem(Icons.hub_outlined, 'Line Model', const Color(0xFF8B5CF6), cardColor, textPrimary, borderColor, () {}),
-                              _customGridItem(Icons.assessment_outlined, 'Sys Logs', const Color(0xFFF43F5E), cardColor, textPrimary, borderColor, () {
-                                setState(() { _selectedIndex = 2; });
-                              }),
-                              _customGridItem(Icons.settings_input_component_outlined, 'Config', const Color(0xFF64748B), cardColor, textPrimary, borderColor, () {
-                                setState(() { _selectedIndex = 3; });
-                              }),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.all(20.0),
-                    child: Container(
-                      width: double.infinity,
-                      height: MediaQuery.of(context).size.height * 0.6, 
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: cardColor,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: borderColor),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.construction_rounded, size: 48, color: textSecondary.withOpacity(0.4)),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Modul UI ${_pageTitles[_selectedIndex]}\nsedang disinkronisasikan.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 13, color: textSecondary, height: 1.4, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+            child: IndexedStack(
+              index: _selectedIndex,
+              children: pages,
+            ),
           ),
         ],
       ),
 
-      // 🛑 3. STICKY FOOTER NAVIGATION BAR LUXURY WITH DYNAMIC STYLE
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: cardColor,
-          border: Border(
-            top: BorderSide(color: borderColor, width: 1), // Garis pembatas tipis elegan atas footer
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(_isDarkMode ? 0.4 : 0.04),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
+      // 🛑 3. STICKY FOOTER (DIPANGGIL DARI FILE FOOTER.DART)
+      bottomNavigationBar: DashboardFooter(
+        selectedIndex: _selectedIndex,
+        isDarkMode: _isDarkMode,
+        cardColor: cardColor,
+        borderColor: borderColor,
+        siixBlue: siixBlue,
+        onTap: (index) => setState(() => _selectedIndex = index),
+      ),
+    );
+  }
+
+  // ==================== KUMPULAN BLOK SUB-PAGE KONTEN UTAMA ====================
+
+  // 🏠 Blok Sub-Page Index 0: Overview Content Area
+  Widget _buildOverviewContent(Color sectionTitleColor, Color siixBlue, Color cardColor, Color textPrimary, Color borderColor) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(vertical: 22.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 💳 SLIDE CARD UTAMA
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Text(
+              'INFORMASI OTORISASI',
+              style: TextStyle(
+                fontSize: 11, 
+                fontWeight: FontWeight.w900, 
+                color: sectionTitleColor, 
+                letterSpacing: 1.2
+              ),
             ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-            child: BottomNavigationBar(
-              items: <BottomNavigationBarItem>[
-                BottomNavigationBarItem(
-                  icon: Icon(_selectedIndex == 0 ? Icons.grid_view_rounded : Icons.grid_view_outlined), 
-                  label: 'Overview'
+          ),
+          const SizedBox(height: 12),
+          
+          SizedBox(
+            height: 125,
+            child: PageView(
+              controller: _pageController,
+              physics: const BouncingScrollPhysics(),
+              onPageChanged: (int page) => setState(() => _currentPage = page),
+              children: [
+                _buildSlideCard3DFull(
+                  Icons.shield_rounded, 
+                  'NIK: ${widget.nik}', 
+                  'Otorisasi: Super Admin Level', 
+                  _isDarkMode 
+                      ? [const Color(0xFF1E40AF), const Color(0xFF0F172A)] 
+                      : [const Color(0xFF1E40AF), const Color(0xFF3B82F6)], 
                 ),
-                BottomNavigationBarItem(
-                  icon: Icon(_selectedIndex == 1 ? Icons.qr_code_scanner_rounded : Icons.qr_code_scanner_outlined), 
-                  label: 'Scanner'
+                _buildSlideCard3DFull(
+                  Icons.verified_user_rounded, 
+                  'Sistem Koneksi', 
+                  'Status: SAP Database Terhubung', 
+                  _isDarkMode 
+                      ? [const Color(0xFF065F46), const Color(0xFF0F172A)] 
+                      : [const Color(0xFF10B981), const Color(0xFF059669)], 
                 ),
-                BottomNavigationBarItem(
-                  icon: Icon(_selectedIndex == 2 ? Icons.history_rounded : Icons.history_outlined), 
-                  label: 'Logs'
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(_selectedIndex == 3 ? Icons.tune_rounded : Icons.tune_outlined), 
-                  label: 'Settings'
+                _buildSlideCard3DFull(
+                  Icons.developer_mode_rounded, 
+                  'App Environment', 
+                  'Mode: Production Verified', 
+                  _isDarkMode 
+                      ? [const Color(0xFF7C2D12), const Color(0xFF0F172A)] 
+                      : [const Color(0xFFF59E0B), const Color(0xFFD97706)], 
                 ),
               ],
-              currentIndex: _selectedIndex,
-              selectedItemColor: _isDarkMode ? const Color(0xFF60A5FA) : siixBlue,
-              unselectedItemColor: _isDarkMode ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
-              showUnselectedLabels: true,
-              type: BottomNavigationBarType.fixed,
-              backgroundColor: cardColor,
-              elevation: 0,
-              selectedFontSize: 11,
-              unselectedFontSize: 11,
-              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: -0.1),
-              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, letterSpacing: -0.1),
-              onTap: (index) => setState(() => _selectedIndex = index),
             ),
           ),
+          
+          const SizedBox(height: 12),
+          
+          // 🟢 ANIMATED DOT INDICATOR DI BAWAH SLIDE CARD
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(3, (index) => AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              margin: const EdgeInsets.symmetric(horizontal: 3.0),
+              height: 5,
+              width: _currentPage == index ? 14 : 5, 
+              decoration: BoxDecoration(
+                color: _currentPage == index 
+                    ? (_isDarkMode ? Colors.blue.shade400 : siixBlue)
+                    : (_isDarkMode ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            )),
+          ),
+          
+          const SizedBox(height: 28),
+          
+          // Judul Section Menu Control
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Text(
+              'MAIN CONTROL SYSTEM',
+              style: TextStyle(
+                fontSize: 11, 
+                fontWeight: FontWeight.w900, 
+                color: sectionTitleColor, 
+                letterSpacing: 1.2
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 📱 MAIN CONTROL GRID
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(), 
+              crossAxisCount: 4, 
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 20,
+              childAspectRatio: 0.82, 
+              children: [
+                _customGridItem(Icons.people_outline_rounded, 'User Access', const Color(0xFF2563EB), cardColor, textPrimary, borderColor, () {}),
+                _customGridItem(Icons.layers_outlined, 'CRUD Part', const Color(0xFFF97316), cardColor, textPrimary, borderColor, () {}),
+                _customGridItem(Icons.crop_free_rounded, 'Scanner', const Color(0xFF10B981), cardColor, textPrimary, borderColor, () {
+                  setState(() { _selectedIndex = 1; });
+                }),
+                _customGridItem(Icons.hub_outlined, 'Line Model', const Color(0xFF8B5CF6), cardColor, textPrimary, borderColor, () {}),
+                _customGridItem(Icons.assessment_outlined, 'Sys Logs', const Color(0xFFF43F5E), cardColor, textPrimary, borderColor, () {
+                  setState(() { _selectedIndex = 2; });
+                }),
+                _customGridItem(Icons.settings_input_component_outlined, 'Config', const Color(0xFF64748B), cardColor, textPrimary, borderColor, () {
+                  setState(() { _selectedIndex = 3; });
+                }),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🛠️ Blok Sub-Page Index 2 & 3: Sinkronisasi Syncing Placeholder
+  Widget _buildPlaceholderContent(Color cardColor, Color borderColor, Color textSecondary) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(20.0),
+      child: Container(
+        width: double.infinity,
+        height: MediaQuery.of(context).size.height * 0.6, 
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.construction_rounded, size: 48, color: textSecondary.withOpacity(0.4)),
+            const SizedBox(height: 12),
+            Text(
+              'Modul UI ${_pageTitles[_selectedIndex]}\nsedang disinkronisasikan.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: textSecondary, height: 1.4, fontWeight: FontWeight.w500),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // 🎴 HELPER WIDGET: Full Width 3D Card (Ketinggian diperpanjang + Shadow disempurnakan berdasarkan tema)
+  // 🎴 HELPER WIDGET: Full Width 3D Card
   Widget _buildSlideCard3DFull(IconData icon, String title, String subtitle, List<Color> gradientColors) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0), 
@@ -423,18 +265,9 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-            // Kontrol Bayangan Dinamis anti kaku
             _isDarkMode 
-                ? BoxShadow(
-                    color: Colors.black.withOpacity(0.5),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  )
-                : BoxShadow(
-                    color: gradientColors[0].withOpacity(0.3),
-                    blurRadius: 14,
-                    offset: const Offset(0, 6),
-                  ),
+                ? BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 12, offset: const Offset(0, 6))
+                : BoxShadow(color: gradientColors[0].withOpacity(0.3), blurRadius: 14, offset: const Offset(0, 6)),
           ],
         ),
         child: Padding(
@@ -479,7 +312,7 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
     );
   }
 
-  // 🟩 HELPER WIDGET: Grid Item Premium (Full Solid Container Warna + Ikon Putih Bersih adaptif)
+  // 🟩 HELPER WIDGET: Grid Item Premium
   Widget _customGridItem(IconData icon, String title, Color itemColor, Color cardColor, Color textPrimary, Color borderColor, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
@@ -488,12 +321,10 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Kotak Icon: Full Solid Background & White Icons
           Container(
             width: 52, 
             height: 52,
             decoration: BoxDecoration(
-              // Background Blok Solid Penuh dengan penyesuaian kecerahan di Dark Mode
               color: _isDarkMode ? itemColor.withOpacity(0.85) : itemColor,
               borderRadius: BorderRadius.circular(16), 
               boxShadow: [
@@ -505,11 +336,7 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
               ]
             ),
             child: Center(
-              child: Icon(
-                icon, 
-                size: 24, 
-                color: Colors.white, // FIX: Icon diubah menjadi Putih Bersih Solid
-              ),
+              child: Icon(icon, size: 24, color: Colors.white),
             ),
           ),
           const SizedBox(height: 8),
