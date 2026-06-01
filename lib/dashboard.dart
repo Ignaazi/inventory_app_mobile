@@ -1,9 +1,11 @@
+import 'dart:ui'; // 🧠 Wajib di-import untuk menghasilkan efek blur kaca (Glassmorphism)
+
 import 'package:flutter/material.dart';
 
 import 'costing/costing.dart';
 import 'engineering/engineering.dart';
 import 'footer.dart';
-import 'header.dart'; // Import file header baru di atas
+import 'header.dart';
 import 'lihat_semua/lihat_semua.dart';
 import 'main.dart';
 import 'monitoring/monitoring.dart';
@@ -14,7 +16,6 @@ import 'user_management/user_management.dart';
 
 class DashboardAdminPage extends StatefulWidget {
   final String nik;
-  // 🟢 UPDATE PRESISI: Mengubah parameter name menjadi fullName & menambahkan field role dari DB
   final String? fullName;
   final String? role;
   final String? profilePhotoPath;
@@ -22,8 +23,8 @@ class DashboardAdminPage extends StatefulWidget {
   const DashboardAdminPage({
     super.key, 
     required this.nik,
-    this.fullName, // 👈 Menangkap nama lengkap user
-    this.role,     // 👈 Menangkap role (Admin/Costing/Production/Engineering)
+    this.fullName, 
+    this.role,     
     this.profilePhotoPath,
   });
 
@@ -52,66 +53,100 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
 
   @override
   Widget build(BuildContext context) {
-    final Color backgroundColor = _isDarkMode ? const Color(0xFF0B0F19) : const Color(0xFFF4F7FA); 
-    final Color cardColor = _isDarkMode ? const Color(0xFF1E293B) : Colors.white; 
-    final Color sectionTitleColor = _isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
-    final Color textPrimary = _isDarkMode ? const Color(0xFFF8FAFC) : const Color(0xFF1E293B); 
-    final Color textSecondary = _isDarkMode ? const Color(0xFF94A3B8) : const Color(0xFF64748B); 
-    final Color borderColor = _isDarkMode ? const Color(0xFF334155).withOpacity(0.5) : const Color(0xFFE2E8F0); 
+    // 🎨 PALET WARNA ELEMENT (Disesuaikan agar teks tetap terbaca tajam di atas kaca transparan)
+    final Color sectionTitleColor = _isDarkMode ? const Color(0xFFE2E8F0) : const Color(0xFF1E3A8A);
+    final Color textPrimary = _isDarkMode ? Colors.white : const Color(0xFF1E3A8A); 
+    final Color textSecondary = _isDarkMode ? const Color(0xFFA5B4FC) : const Color(0xFF475569); 
+    final Color borderColor = _isDarkMode ? Colors.white.withOpacity(0.15) : Colors.white.withOpacity(0.4); 
+    final Color glassColor = _isDarkMode ? Colors.black.withOpacity(0.25) : Colors.white.withOpacity(0.25);
 
     const Color siixBlue = Color(0xFF1E40AF); 
 
     final List<Widget> pages = [
-      _buildOverviewContent(sectionTitleColor, siixBlue, cardColor, textPrimary, borderColor), 
+      _buildOverviewContent(sectionTitleColor, siixBlue, glassColor, textPrimary, borderColor, textSecondary), 
       ScannerPage(isDarkMode: _isDarkMode), 
-      _buildPlaceholderContent(cardColor, borderColor, textSecondary), 
-      _buildPlaceholderContent(cardColor, borderColor, textSecondary), 
+      _buildPlaceholderContent(glassColor, borderColor, textSecondary), 
+      _buildPlaceholderContent(glassColor, borderColor, textSecondary), 
     ];
 
     return Scaffold(
-      backgroundColor: backgroundColor,
-      body: Column(
+      body: Stack(
         children: [
-          // 🟢 Kunci Sinkronisasi: Mengalirkan data fullName dan role ke struktur Header terbaru
-          DashboardHeader(
-            pageTitle: _pageTitles[_selectedIndex],
-            isDarkMode: _isDarkMode,
-            onThemeToggle: () => setState(() => _isDarkMode = !_isDarkMode),
-            onLogout: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginPage()),
-              );
-            },
-            userName: widget.fullName,         // 👈 Sekarang mengirimkan Nama Lengkap asli
-            userRole: widget.role,             // 👈 Mengirimkan role dinamis (Admin/Costing/Engineering/Production)
-            userNim: widget.nik,               // Mengirim NIK
-            profilePhotoPath: widget.profilePhotoPath, // Mengirim path foto
-          ),
-          Expanded(
-            child: IndexedStack(
-              index: _selectedIndex,
-              children: pages,
+          // 🛑 1. BACKGROUND DYNAMIC GRADIENT (Light: Pelangi Biru | Dark: Neon Purple Indigo)
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: _isDarkMode
+                    ? [
+                        const Color(0xFF0F172A), // Midnight Dark
+                        const Color(0xFF311B92), // Deep Purple
+                        const Color(0xFF1E1B4B), // Indigo Tua
+                        const Color(0xFF4A148C), // Royal Purple Accent
+                      ]
+                    : [
+                        const Color(0xFF1E40AF), // Biru Tua
+                        const Color(0xFF60A5FA), // Biru Muda
+                        Colors.white,            // Putih Clean
+                        const Color(0xFFE0E7FF), // Indigo Light
+                        const Color(0xFFFDE68A), // Pelangi Kuning Soft
+                        const Color(0xFFFBCFE8), // Pelangi Pink Soft
+                      ],
+                stops: _isDarkMode ? [0.0, 0.4, 0.7, 1.0] : [0.0, 0.25, 0.45, 0.65, 0.8, 1.0],
+              ),
             ),
+          ),
+
+          // 🛑 2. MAIN INTERFACE CONTENT LAYER (GARIS LURUS MENTOK ATAS)
+          Column( // 🟢 MODIFIKASI: Mengganti SafeArea terluar dengan Column biasa agar Header menembus batas atas HP
+            children: [
+              DashboardHeader(
+                pageTitle: _pageTitles[_selectedIndex],
+                isDarkMode: _isDarkMode,
+                onThemeToggle: () => setState(() => _isDarkMode = !_isDarkMode),
+                onLogout: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                  );
+                },
+                userName: widget.fullName,         
+                userRole: widget.role,             
+                userNim: widget.nik,               
+                profilePhotoPath: widget.profilePhotoPath, 
+              ),
+              
+              // 🟢 MODIFIKASI: Membungkus area isi konten dengan SafeArea khusus (Hanya memproteksi area bawah/samping jika diperlukan)
+              Expanded(
+                child: SafeArea(
+                  top: false, // 🟢 KUNCI UTAMA: Mematikan proteksi atas agar konten menempel pas di bawah header flat
+                  child: IndexedStack(
+                    index: _selectedIndex,
+                    children: pages,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
       bottomNavigationBar: DashboardFooter(
         selectedIndex: _selectedIndex,
         isDarkMode: _isDarkMode,
-        cardColor: cardColor,
+        cardColor: _isDarkMode ? const Color(0xFF111827).withOpacity(0.9) : Colors.white.withOpacity(0.9),
         borderColor: borderColor,
-        siixBlue: siixBlue,
+        siixBlue: _isDarkMode ? const Color(0xFFA855F7) : siixBlue, 
         onTap: (index) => setState(() => _selectedIndex = index),
       ),
     );
   }
 
-  // ==================== MAIN OVERVIEW CONTENT ====================
-  Widget _buildOverviewContent(Color sectionTitleColor, Color siixBlue, Color cardColor, Color textPrimary, Color borderColor) {
+  // ==================== MAIN OVERVIEW CONTENT (GLASS STYLE) ====================
+  Widget _buildOverviewContent(Color sectionTitleColor, Color siixBlue, Color glassColor, Color textPrimary, Color borderColor, Color textSecondary) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(vertical: 22.0),
+      padding: const EdgeInsets.symmetric(vertical: 20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -132,9 +167,9 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
               physics: const BouncingScrollPhysics(),
               onPageChanged: (int page) => setState(() => _currentPage = page),
               children: [
-                _buildSlideCard3DFull(Icons.shield_rounded, 'NIK: ${widget.nik}', 'Otorisasi: ${widget.role ?? "Super Admin"} Level', _isDarkMode ? [const Color(0xFF1E40AF), const Color(0xFF0F172A)] : [const Color(0xFF1E40AF), const Color(0xFF3B82F6)]),
-                _buildSlideCard3DFull(Icons.verified_user_rounded, 'Sistem Koneksi', 'Status: SAP Database Terhubung', _isDarkMode ? [const Color(0xFF065F46), const Color(0xFF0F172A)] : [const Color(0xFF10B981), const Color(0xFF059669)]),
-                _buildSlideCard3DFull(Icons.developer_mode_rounded, 'App Environment', 'Mode: Production Verified', _isDarkMode ? [const Color(0xFF7C2D12), const Color(0xFF0F172A)] : [const Color(0xFFF59E0B), const Color(0xFFD97706)]),
+                _buildSlideCard3DFull(Icons.shield_rounded, 'NIK: ${widget.nik}', 'Otorisasi: ${widget.role ?? "Super Admin"} Level', _isDarkMode ? [const Color(0xFF6B21A8), const Color(0xFF1E1B4B)] : [const Color(0xFF1E40AF), const Color(0xFF3B82F6)]),
+                _buildSlideCard3DFull(Icons.verified_user_rounded, 'Sistem Koneksi', 'Status: SAP Database Terhubung', _isDarkMode ? [const Color(0xFF03493E), const Color(0xFF0F172A)] : [const Color(0xFF10B981), const Color(0xFF059669)]),
+                _buildSlideCard3DFull(Icons.developer_mode_rounded, 'App Environment', 'Mode: Production Verified', _isDarkMode ? [const Color(0xFF701A75), const Color(0xFF1E1B4B)] : [const Color(0xFFF59E0B), const Color(0xFFD97706)]),
               ],
             ),
           ),
@@ -149,13 +184,13 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
               height: 5,
               width: _currentPage == index ? 14 : 5, 
               decoration: BoxDecoration(
-                color: _currentPage == index ? (_isDarkMode ? Colors.blue.shade400 : siixBlue) : (_isDarkMode ? const Color(0xFF334155) : const Color(0xFFCBD5E1)),
+                color: _currentPage == index ? (_isDarkMode ? const Color(0xFFA855F7) : siixBlue) : Colors.white.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(10),
               ),
             )),
           ),
           
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
           
           // 📱 MAIN CONTROL GRID
           Padding(
@@ -165,43 +200,57 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: sectionTitleColor, letterSpacing: 1.2),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(), 
-              crossAxisCount: 4, 
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 20,
-              childAspectRatio: 0.82, 
-              children: [
-                _customGridItem(Icons.manage_accounts_rounded, 'User Management', const Color(0xFF2563EB), cardColor, textPrimary, borderColor, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const UserManagementPage()));
-                }),
-                _customGridItem(Icons.analytics_rounded, 'Monitoring All', const Color(0xFFF97316), cardColor, textPrimary, borderColor, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const MonitoringAllPage()));
-                }),
-                _customGridItem(Icons.engineering_rounded, 'Engineering', const Color(0xFF0EA5E9), cardColor, textPrimary, borderColor, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const EngineeringPage()));
-                }),
-                _customGridItem(Icons.precision_manufacturing_rounded, 'Production', const Color(0xFF10B981), cardColor, textPrimary, borderColor, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductionPage()));
-                }),
-                _customGridItem(Icons.monetization_on_rounded, 'Costing', const Color(0xFFEAB308), cardColor, textPrimary, borderColor, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const CostingPage()));
-                }),
-                _customGridItem(Icons.qr_code_scanner_rounded, 'Scan', const Color(0xFF8B5CF6), cardColor, textPrimary, borderColor, () {
-                  setState(() { _selectedIndex = 1; }); 
-                }),
-                _customGridItem(Icons.history_toggle_off_rounded, 'System Logs', const Color(0xFFF43F5E), cardColor, textPrimary, borderColor, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const SystemLogsPage()));
-                }),
-                _customGridItem(Icons.grid_view_rounded, 'Lihat Semua', const Color(0xFF64748B), cardColor, textPrimary, borderColor, () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const LihatSemuaPage()));
-                }),
-              ],
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: glassColor,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: borderColor, width: 1.2),
+                  ),
+                  child: GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(), 
+                    crossAxisCount: 4, 
+                    crossAxisSpacing: 4,
+                    mainAxisSpacing: 18,
+                    childAspectRatio: 0.85, 
+                    children: [
+                      _customGridItem(Icons.manage_accounts_rounded, 'User Management', _isDarkMode ? const Color(0xFF9333EA) : const Color(0xFF2563EB), textPrimary, () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const UserManagementPage()));
+                      }),
+                      _customGridItem(Icons.analytics_rounded, 'Monitoring All', const Color(0xFFF97316), textPrimary, () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const MonitoringAllPage()));
+                      }),
+                      _customGridItem(Icons.engineering_rounded, 'Engineering', const Color(0xFF0EA5E9), textPrimary, () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const EngineeringPage()));
+                      }),
+                      _customGridItem(Icons.precision_manufacturing_rounded, 'Production', const Color(0xFF10B981), textPrimary, () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductionPage()));
+                      }),
+                      _customGridItem(Icons.monetization_on_rounded, 'Costing', const Color(0xFFEAB308), textPrimary, () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const CostingPage()));
+                      }),
+                      _customGridItem(Icons.qr_code_scanner_rounded, 'Scan Matrix', _isDarkMode ? const Color(0xFFC084FC) : const Color(0xFF8B5CF6), textPrimary, () {
+                        setState(() { _selectedIndex = 1; }); 
+                      }),
+                      _customGridItem(Icons.history_toggle_off_rounded, 'System Logs', const Color(0xFFF43F5E), textPrimary, () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const SystemLogsPage()));
+                      }),
+                      _customGridItem(Icons.grid_view_rounded, 'Lihat Semua', const Color(0xFF64748B), textPrimary, () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const LihatSemuaPage()));
+                      }),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -209,22 +258,37 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
     );
   }
 
-  Widget _buildPlaceholderContent(Color cardColor, Color borderColor, Color textSecondary) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(20.0),
-      child: Container(
-        width: double.infinity,
-        height: MediaQuery.of(context).size.height * 0.6, 
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: borderColor)),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.construction_rounded, size: 48, color: textSecondary.withOpacity(0.4)),
-            const SizedBox(height: 12),
-            Text('Modul UI ${_pageTitles[_selectedIndex]}\nsedang disinkronisasikan.', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: textSecondary, height: 1.4, fontWeight: FontWeight.w500)),
-          ],
+  Widget _buildPlaceholderContent(Color glassColor, Color borderColor, Color textSecondary) {
+    return Center(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(24.0),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: glassColor, 
+                borderRadius: BorderRadius.circular(24), 
+                border: Border.all(color: borderColor, width: 1.2),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.construction_rounded, size: 44, color: textSecondary),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Modul UI ${_pageTitles[_selectedIndex]}\nsedang disinkronisasikan.', 
+                    textAlign: TextAlign.center, 
+                    style: TextStyle(fontSize: 13, color: textSecondary, height: 1.4, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -238,7 +302,13 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
         decoration: BoxDecoration(
           gradient: LinearGradient(colors: gradientColors, begin: Alignment.topLeft, end: Alignment.bottomRight),
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [_isDarkMode ? BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 12, offset: const Offset(0, 6)) : BoxShadow(color: gradientColors[0].withOpacity(0.3), blurRadius: 14, offset: const Offset(0, 6))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(_isDarkMode ? 0.4 : 0.15), 
+              blurRadius: 10, 
+              offset: const Offset(0, 5),
+            ),
+          ],
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
@@ -247,7 +317,7 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(color: Colors.white.withOpacity(0.18), shape: BoxShape.circle, border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5)),
-                child: Icon(icon, color: Colors.white, size: 28),
+                child: Icon(icon, color: Colors.white, size: 26),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -255,7 +325,7 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.2)),
+                    Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.2)),
                     const SizedBox(height: 4),
                     Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12, fontWeight: FontWeight.w600)),
                   ],
@@ -268,7 +338,7 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
     );
   }
 
-  Widget _customGridItem(IconData icon, String title, Color itemColor, Color cardColor, Color textPrimary, Color borderColor, VoidCallback onTap) {
+  Widget _customGridItem(IconData icon, String title, Color itemColor, Color textPrimary, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -277,24 +347,34 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 52, 
-            height: 52,
+            width: 48, 
+            height: 48,
             decoration: BoxDecoration(
-              color: _isDarkMode ? itemColor.withOpacity(0.85) : itemColor,
-              borderRadius: BorderRadius.circular(16), 
-              boxShadow: [BoxShadow(color: itemColor.withOpacity(_isDarkMode ? 0.3 : 0.18), blurRadius: 10, offset: const Offset(0, 4))]
+              gradient: LinearGradient(
+                colors: [itemColor, itemColor.withOpacity(0.7)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(14), 
+              boxShadow: [
+                BoxShadow(
+                  color: itemColor.withOpacity(0.25), 
+                  blurRadius: 8, 
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            child: Center(child: Icon(icon, size: 24, color: Colors.white)),
+            child: Center(child: Icon(icon, size: 22, color: Colors.white)),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2.0),
+            padding: const EdgeInsets.symmetric(horizontal: 1.0),
             child: Text(
               title,
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textPrimary, letterSpacing: -0.2, height: 1.1),
+              style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: textPrimary, letterSpacing: -0.3, height: 1.1),
             ),
           ),
         ],

@@ -1,7 +1,8 @@
-import 'dart:convert'; // 📊 2. Untuk decode-encode data JSON
+import 'dart:convert'; // Untuk decode-encode data JSON
+import 'dart:ui'; // Wajib untuk efek Glassmorphism (Blur)
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; // 📊 1. Suntik library HTTP untuk koneksi DB
+import 'package:http/http.dart' as http; // Library HTTP koneksi DB
 
 import 'dashboard.dart';
 
@@ -19,10 +20,6 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         fontFamily: 'Roboto',
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2563EB),
-          primary: const Color(0xFF2563EB),
-        ),
         useMaterial3: true,
       ),
       home: const LoginPage(),
@@ -41,18 +38,16 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _nikController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscureText = true;
-  bool _isLoading = false; // 📊 3. State untuk indikator loading muter-muter
+  bool _isLoading = false;
 
-  // 📊 4. FUNGSI UTAMA KONEKSI KE LARAVEL XAMPP LU
+  // FUNGSI LOGIN API LARAVEL
   Future<void> _handleLogin() async {
     if (_nikController.text.isEmpty || _passwordController.text.isEmpty) {
-      _showSnackBar('NIK dan Password wajib diisi!', Colors.red);
+      _showSnackBar('NIK dan Password wajib diisi!', Colors.redAccent);
       return;
     }
 
-    setState(() => _isLoading = true); // Mulai loading animasi
-
-    // Menggunakan IP 10.0.2.2 karena emulator Android membaca localhost laptop lewat IP ini
+    setState(() => _isLoading = true);
     final String url = 'http://10.0.2.2:8000/api/login'; 
 
     try {
@@ -60,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'nim': _nikController.text, // 👈 Dioper sebagai 'nim' agar dibaca oleh DB XAMPP lu
+          'nim': _nikController.text,
           'password': _passwordController.text,
         }),
       );
@@ -68,9 +63,7 @@ class _LoginPageState extends State<LoginPage> {
       final data = json.decode(response.body);
 
       if (response.statusCode == 200 && data['status'] == 'success') {
-        _showSnackBar(data['message'] ?? 'Login Berhasil!', Colors.green);
-        
-        // 🟢 AUTOMATED UPDATE: Ambil data object 'user' yang dikirim oleh API Laravel lu
+        _showSnackBar(data['message'] ?? 'Login Berhasil!', Colors.greenAccent);
         final userData = data['user'];
 
         if (mounted) {
@@ -79,7 +72,6 @@ class _LoginPageState extends State<LoginPage> {
             MaterialPageRoute(
               builder: (context) => DashboardAdminPage(
                 nik: _nikController.text,
-                // 🟢 FIX ERROR FIXED: Dioper ke 'fullName' dan 'role' sesuai isi dashboard.dart terbaru lu
                 fullName: userData != null ? userData['name'] : null, 
                 role: userData != null ? userData['role'] : null, 
                 profilePhotoPath: userData != null ? userData['profile_photo_path'] : null,
@@ -88,23 +80,20 @@ class _LoginPageState extends State<LoginPage> {
           );
         }
       } else {
-        // 🔴 GAGAL: Akun salah / tidak terdaftar di DB XAMPP
-        _showSnackBar(data['message'] ?? 'NIK atau Password salah, Bro!', Colors.red);
+        _showSnackBar(data['message'] ?? 'NIK atau Password salah!', Colors.redAccent);
       }
     } catch (e) {
-      // 🔴 ERROR SERVER: Laravel belum dijalankan / salah IP port
-      _showSnackBar('Gagal terhubung ke server Laravel: $e', Colors.orange);
+      _showSnackBar('Gagal terhubung ke server!', Colors.orangeAccent);
     } finally {
-      if (mounted) setState(() => _isLoading = false); // Matikan loading animasi
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // Fungsi pembantu memunculkan snackbar adaptif warna
   void _showSnackBar(String text, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(text),
-        backgroundColor: color,
+        content: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: color.withOpacity(0.9),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -112,250 +101,241 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    const Color siixBlue = Color(0xFF1E40AF);
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
       body: Stack(
         children: [
-          // Background Lengkungan Biru Atas yang Presisi
+          // 1. BACKGROUND GRADIENT (Biru, Putih, Pelangi Magic)
           Container(
-            height: MediaQuery.of(context).size.height * 0.4,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [siixBlue, Color(0xFF2563EB)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(40),
-                bottomRight: Radius.circular(40),
+                colors: [
+                  Color(0xFF1E40AF), // Biru Tua
+                  Color(0xFF60A5FA), // Biru Muda
+                  Colors.white,      // Putih
+                  Color(0xFFE0E7FF), // Biru Pastel
+                  Color(0xFFFDE68A), // Sentuhan Pelangi (Kuning Soft)
+                  Color(0xFFFBCFE8), // Sentuhan Pelangi (Pink Soft)
+                ],
+                stops: [0.0, 0.3, 0.5, 0.7, 0.85, 1.0],
               ),
             ),
           ),
-          
+
+          // 2. MAIN CONTENT
           SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  children: [
+                    // Gambar Isometrik SIIX
+                    Image.asset(
+                      'assets/loginpage.png',
+                      height: 210, // Dikecilkan sedikit agar layout card punya ruang lebih luas
+                      fit: BoxFit.contain,
                     ),
-                    child: IntrinsicHeight(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 32),
-                            // Header Logo & Judul Aplikasi
-                            const Icon(Icons.blur_on, size: 72, color: Colors.white),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'SPAREPART MANAGEMENT SYSTEM',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.2),
+                    const SizedBox(height: 16),
+
+                    // 3. GLASSMORPHISM CARD (Efek Transparan Kaca)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                        child: Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.25),
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.4),
+                              width: 1.5,
                             ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'PT SIIX EMS KARAWANG',
-                              style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500, letterSpacing: 1),
-                            ),
-                            const SizedBox(height: 32),
-                            
-                            // Card Box Putih untuk Input Form
-                            Card(
-                              elevation: 6,
-                              shadowColor: Colors.black12,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                              child: Padding(
-                                padding: const EdgeInsets.all(24.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Welcome Back',
-                                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: siixBlue),
-                                    ),
-                                    const Text(
-                                      'SIGN IN TO YOUR ACCOUNT', 
-                                      style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.w600, letterSpacing: 0.5)
-                                    ),
-                                    const SizedBox(height: 24),
-                                    
-                                    // Label NIK
-                                    const Text(
-                                      'NIK',
-                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      children: [
-                                        Container(
-                                          width: 48,
-                                          height: 48,
-                                          decoration: BoxDecoration(
-                                            color: siixBlue.withOpacity(0.08),
-                                            border: Border.all(color: Colors.black12),
-                                            borderRadius: const BorderRadius.only(
-                                              topLeft: Radius.circular(12),
-                                              bottomLeft: Radius.circular(12),
-                                            ),
-                                          ),
-                                          child: const Icon(Icons.person_outline, color: siixBlue, size: 22),
-                                        ),
-                                        Expanded(
-                                          child: Container(
-                                            height: 48,
-                                            decoration: const BoxDecoration(
-                                              color: Color(0xFFF9FAFB),
-                                              border: Border(
-                                                top: BorderSide(color: Colors.black12),
-                                                right: BorderSide(color: Colors.black12),
-                                                bottom: BorderSide(color: Colors.black12),
-                                              ),
-                                              borderRadius: BorderRadius.only(
-                                                topRight: Radius.circular(12),
-                                                bottomRight: Radius.circular(12),
-                                              ),
-                                            ),
-                                            child: TextField(
-                                              controller: _nikController,
-                                              keyboardType: TextInputType.number,
-                                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 15),
-                                              decoration: const InputDecoration(
-                                                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                                border: InputBorder.none,
-                                                hintText: 'Masukkan NIK Anda',
-                                                hintStyle: TextStyle(color: Colors.black26, fontSize: 14),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 18),
-                                    
-                                    // Label Password
-                                    const Text(
-                                      'PASSWORD',
-                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      children: [
-                                        Container(
-                                          width: 48,
-                                          height: 48,
-                                          decoration: BoxDecoration(
-                                            color: siixBlue.withOpacity(0.08),
-                                            border: Border.all(color: Colors.black12),
-                                            borderRadius: const BorderRadius.only(
-                                              topLeft: Radius.circular(12),
-                                              bottomLeft: Radius.circular(12),
-                                            ),
-                                          ),
-                                          child: const Icon(Icons.lock_outline, color: siixBlue, size: 22),
-                                        ),
-                                        Expanded(
-                                          child: Container(
-                                            height: 48,
-                                            decoration: const BoxDecoration(
-                                              color: Color(0xFFF9FAFB),
-                                              border: Border(
-                                                top: BorderSide(color: Colors.black12),
-                                                right: BorderSide(color: Colors.black12),
-                                                bottom: BorderSide(color: Colors.black12),
-                                              ),
-                                              borderRadius: BorderRadius.only(
-                                                topRight: Radius.circular(12),
-                                                bottomRight: Radius.circular(12),
-                                              ),
-                                            ),
-                                            child: TextField(
-                                              controller: _passwordController,
-                                              obscureText: _obscureText,
-                                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 15),
-                                              decoration: InputDecoration(
-                                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                                border: InputBorder.none,
-                                                hintText: 'Masukkan Password',
-                                                hintStyle: const TextStyle(color: Colors.black26, fontSize: 14),
-                                                suffixIcon: IconButton(
-                                                  icon: Icon(
-                                                    _obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                                    color: Colors.black38,
-                                                    size: 20,
-                                                  ),
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      _obscureText = !_obscureText;
-                                                    });
-                                                  },
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 28),
-                                    
-                                    // Tombol Login Hijau Emerald Premium + Loading Adaptif
-                                    SizedBox(
-                                      width: double.infinity,
-                                      height: 48,
-                                      child: ElevatedButton(
-                                        onPressed: _isLoading ? null : _handleLogin,
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF10B981),
-                                          foregroundColor: Colors.white,
-                                          elevation: 2,
-                                          shadowColor: const Color(0xFF10B981).withOpacity(0.3),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                        ),
-                                        child: _isLoading 
-                                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
-                                            : const Text(
-                                                'LOGIN TO SYSTEM', 
-                                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1),
-                                              ),
-                                      ),
-                                    ),
-                                  ],
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 20,
+                                spreadRadius: 5,
+                              )
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // 🟢 ADJUSTMENT: Tulisan Login Dikecilkan Sedikit Sesuai Request
+                              const Text(
+                                'Login',
+                                style: TextStyle(
+                                  fontSize: 24, // Dari 28 diturunkan ke 24 agar lebih proporsional
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF1E3A8A),
+                                  letterSpacing: -0.5,
                                 ),
                               ),
-                            ),
-                            
-                            const Spacer(), 
-                            
-                            // FOOTER LOGIN
-                            const Column(
-                              children: [
-                                Text(
-                                  '© 2026 PT SIIX EMS INDONESIA',
-                                  style: TextStyle(color: Colors.black45, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.3),
+                              const SizedBox(height: 2),
+
+                              // 🟢 TAMBAHAN BARU: Judul Panjang Dipaksa Tetap 1 Line Pakai FittedBox
+                              const SizedBox(
+                                width: double.infinity,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown, // Otomatis nge-scale mengecil kalau layar HP sempit
+                                  child: Text(
+                                    'SPAREPART MANAGEMENT SYSTEM',
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFF1E40AF),
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
                                 ),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Process Engineering Dept • Version 1.0.0',
-                                  style: TextStyle(color: Colors.black38, fontSize: 10, fontWeight: FontWeight.w500),
+                              ),
+                              
+                              const Text(
+                                'Please sign in to continue',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.black54,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 16), 
-                          ],
+                              ),
+                              const SizedBox(height: 26),
+
+                              // INPUT NIK (Integrated Linear Design)
+                              _buildGlassInput(
+                                controller: _nikController,
+                                label: 'NIK Karyawan',
+                                icon: Icons.person_outline,
+                                keyboardType: TextInputType.number,
+                              ),
+                              const SizedBox(height: 18),
+
+                              // INPUT PASSWORD (Integrated Linear Design)
+                              _buildGlassInput(
+                                controller: _passwordController,
+                                label: 'Password',
+                                icon: Icons.lock_outline,
+                                isPassword: true,
+                                obscureText: _obscureText,
+                                onToggle: () => setState(() => _obscureText = !_obscureText),
+                              ),
+                              const SizedBox(height: 28),
+
+                              // 4. LOGIN BUTTON (3D Gradient Style)
+                              Container(
+                                width: double.infinity,
+                                height: 52,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(15),
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF1E40AF).withOpacity(0.3),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 5),
+                                    )
+                                  ],
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: _isLoading ? null : _handleLogin,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                    ),
+                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                                        )
+                                      : const Text(
+                                          'Login',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 1,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
+                    const SizedBox(height: 35),
+
+                    // FOOTER
+                    const Text(
+                      'PT SIIX EMS INDONESIA',
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const Text(
+                      'Process Engineering Dept • Version 1.0.0',
+                      style: TextStyle(color: Colors.black45, fontSize: 10),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // WIDGET HELPER UNTUK INPUT GLASS STYLE
+  Widget _buildGlassInput({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool isPassword = false,
+    bool obscureText = false,
+    VoidCallback? onToggle,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.white.withOpacity(0.5)),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A)),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.black45, fontSize: 13),
+          prefixIcon: Icon(icon, color: const Color(0xFF1E40AF), size: 20),
+          suffixIcon: isPassword
+              ? IconButton(
+                  icon: Icon(
+                    obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    color: Colors.black38,
+                    size: 18,
+                  ),
+                  onPressed: onToggle,
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
       ),
     );
   }
