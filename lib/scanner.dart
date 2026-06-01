@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart'; // 🟢 Menggunakan library kamera asli
+import 'package:mobile_scanner/mobile_scanner.dart'; // 🟢 Tetap pakai library asli
 
 class ScannerPage extends StatefulWidget {
   final bool isDarkMode;
@@ -14,18 +14,19 @@ class _ScannerPageState extends State<ScannerPage> with SingleTickerProviderStat
   late AnimationController _animationController;
   late Animation<double> _laserAnimation;
   
-  // Controller untuk mengatur siklus hidup kamera asli
+  // 1. Tambahkan state untuk mengontrol kapan kamera boleh menyala
+  bool _isCameraActive = false; 
+
   final MobileScannerController _scannerController = MobileScannerController(
     detectionSpeed: DetectionSpeed.normal,
-    facing: CameraFacing.back, // Memakai kamera belakang
+    facing: CameraFacing.back,
   );
 
-  String _scannedResult = ''; // State untuk menampung hasil scan barcode
+  String _scannedResult = ''; 
 
   @override
   void initState() {
     super.initState();
-    // Animasi loop naik-turun untuk laser pembidik
     _animationController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -37,7 +38,7 @@ class _ScannerPageState extends State<ScannerPage> with SingleTickerProviderStat
   @override
   void dispose() {
     _animationController.dispose();
-    _scannerController.dispose(); // Wajib di-dispose agar kamera mati saat pindah page
+    _scannerController.dispose(); 
     super.dispose();
   }
 
@@ -56,7 +57,6 @@ class _ScannerPageState extends State<ScannerPage> with SingleTickerProviderStat
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // KOTAK UTAMA VIEWPORT SCANNER
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -73,7 +73,6 @@ class _ScannerPageState extends State<ScannerPage> with SingleTickerProviderStat
               ),
               child: Column(
                 children: [
-                  // 🎥 AREA LIVE KAMERA HP (RASIO 1:1 KOTAK PRESISI)
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: AspectRatio(
@@ -83,61 +82,81 @@ class _ScannerPageState extends State<ScannerPage> with SingleTickerProviderStat
                           color: Colors.black,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        clipBehavior: Clip.antiAlias, // Biar feed kamera melengkung rapi di ujung
+                        clipBehavior: Clip.antiAlias, 
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
                             
-                            // 📷 FEED KAMERA ASLI DARI HARDWARE HP
-                            MobileScanner(
-                              controller: _scannerController,
-                              onDetect: (capture) {
-                                final List<Barcode> barcodes = capture.barcodes;
-                                for (final barcode in barcodes) {
-                                  if (barcode.rawValue != null) {
+                            // 2. KONDISI: Jika kamera belum aktif, tampilkan tombol pemicu
+                            if (!_isCameraActive)
+                              Center(
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF10B981),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  onPressed: () {
                                     setState(() {
-                                      // Menyimpan string data hasil scan ke dalam state
-                                      _scannedResult = barcode.rawValue!;
+                                      _isCameraActive = true; // 🎥 Nyalakan kamera dan picu perizinan HANYA saat diklik
                                     });
+                                  },
+                                  icon: const Icon(Icons.camera_alt_rounded),
+                                  label: const Text('Aktifkan Kamera', style: TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                              )
+                            else
+                              // 📷 KAMERA BARU AKTIF DI SINI JIKA DIKLIK
+                              MobileScanner(
+                                controller: _scannerController,
+                                onDetect: (capture) {
+                                  final List<Barcode> barcodes = capture.barcodes;
+                                  for (final barcode in barcodes) {
+                                    if (barcode.rawValue != null) {
+                                      setState(() {
+                                        _scannedResult = barcode.rawValue!;
+                                      });
+                                    }
                                   }
-                                }
-                              },
-                            ),
+                                },
+                              ),
 
-                            // 🎯 BINGKAI KOTAK TARGET SCANNER (OVERLAY KACA TRANSMEDIK)
+                            // 🎯 BINGKAI KOTAK TARGET SCANNER
                             Container(
                               width: 200,
                               height: 200,
                               decoration: BoxDecoration(
-                                border: Border.all(color: const Color(0xFF10B981), width: 2),
+                                border: Border.all(color: const Color(0xFF10B981).withOpacity(_isCameraActive ? 1.0 : 0.3), width: 2),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
 
-                            // 🚨 ANIMASI LASER SCANNING HIJAU BERGERAK DI ATAS KAMERA
-                            AnimatedBuilder(
-                              animation: _laserAnimation,
-                              builder: (context, child) {
-                                double targetAreaHeight = 200;
-                                return Positioned(
-                                  top: (MediaQuery.of(context).size.width / 2 - 116) + (_laserAnimation.value * targetAreaHeight),
-                                  child: Container(
-                                    width: 190,
-                                    height: 3,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF10B981),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: const Color(0xFF10B981).withOpacity(0.8),
-                                          blurRadius: 8,
-                                          spreadRadius: 2,
-                                        )
-                                      ],
+                            // 🚨 ANIMASI LASER SCANNING HIJAU
+                            if (_isCameraActive)
+                              AnimatedBuilder(
+                                animation: _laserAnimation,
+                                builder: (context, child) {
+                                  double targetAreaHeight = 200;
+                                  return Positioned(
+                                    top: (MediaQuery.of(context).size.width / 2 - 116) + (_laserAnimation.value * targetAreaHeight),
+                                    child: Container(
+                                      width: 190,
+                                      height: 3,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF10B981),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF10B981).withOpacity(0.8),
+                                            blurRadius: 8,
+                                            spreadRadius: 2,
+                                          )
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
-                            ),
+                                  );
+                                },
+                              ),
                           ],
                         ),
                       ),
@@ -153,14 +172,14 @@ class _ScannerPageState extends State<ScannerPage> with SingleTickerProviderStat
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF10B981),
+                          decoration: BoxDecoration(
+                            color: _isCameraActive ? const Color(0xFF10B981) : Colors.orange,
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Arahkan kamera ke QR / Barcode',
+                          _isCameraActive ? 'Kamera aktif mendeteksi barcode' : 'Kamera standby (belum diberi izin)',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -199,10 +218,9 @@ class _ScannerPageState extends State<ScannerPage> with SingleTickerProviderStat
                   ),
                   const SizedBox(height: 14),
                   
-                  // Text Field Menampilkan Data yang Berhasil Dibaca HP secara Realtime
                   TextField(
                     readOnly: true,
-                    controller: TextEditingController(text: _scannedResult), // Pasang hasilnya langsung ke kontroler teks
+                    controller: TextEditingController(text: _scannedResult),
                     style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
                     decoration: InputDecoration(
                       labelText: 'Data Code Terdeteksi',
