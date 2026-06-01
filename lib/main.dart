@@ -1,4 +1,7 @@
+import 'dart:convert'; // 📊 2. Untuk decode-encode data JSON
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http; // 📊 1. Suntik library HTTP untuk koneksi DB
 
 import 'dashboard.dart';
 
@@ -38,25 +41,71 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _nikController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscureText = true;
+  bool _isLoading = false; // 📊 3. State untuk indikator loading muter-muter
 
-  void _handleLogin() {
+  // 📊 4. FUNGSI UTAMA KONEKSI KE LARAVEL XAMPP LU
+  Future<void> _handleLogin() async {
     if (_nikController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('NIK dan Password wajib diisi!'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      _showSnackBar('NIK dan Password wajib diisi!', Colors.red);
       return;
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DashboardAdminPage(
-          nik: _nikController.text,
-        ),
+    setState(() => _isLoading = true); // Mulai loading animasi
+
+    // Menggunakan IP 10.0.2.2 karena emulator Android membaca localhost laptop lewat IP ini
+    final String url = 'http://10.0.2.2:8000/api/login'; 
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'nim': _nikController.text, // 👈 Dioper sebagai 'nim' agar dibaca oleh DB XAMPP lu
+          'password': _passwordController.text,
+        }),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['status'] == 'success') {
+        _showSnackBar(data['message'] ?? 'Login Berhasil!', Colors.green);
+        
+        // 🟢 AUTOMATED UPDATE: Ambil data object 'user' yang dikirim oleh API Laravel lu
+        final userData = data['user'];
+
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DashboardAdminPage(
+                nik: _nikController.text,
+                // 🟢 FIX ERROR FIXED: Dioper ke 'fullName' dan 'role' sesuai isi dashboard.dart terbaru lu
+                fullName: userData != null ? userData['name'] : null, 
+                role: userData != null ? userData['role'] : null, 
+                profilePhotoPath: userData != null ? userData['profile_photo_path'] : null,
+              ),
+            ),
+          );
+        }
+      } else {
+        // 🔴 GAGAL: Akun salah / tidak terdaftar di DB XAMPP
+        _showSnackBar(data['message'] ?? 'NIK atau Password salah, Bro!', Colors.red);
+      }
+    } catch (e) {
+      // 🔴 ERROR SERVER: Laravel belum dijalankan / salah IP port
+      _showSnackBar('Gagal terhubung ke server Laravel: $e', Colors.orange);
+    } finally {
+      if (mounted) setState(() => _isLoading = false); // Matikan loading animasi
+    }
+  }
+
+  // Fungsi pembantu memunculkan snackbar adaptif warna
+  void _showSnackBar(String text, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(text),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -92,7 +141,7 @@ class _LoginPageState extends State<LoginPage> {
                   keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight, // Mengunci tinggi layar minimal seukuran layar asli
+                      minHeight: constraints.maxHeight,
                     ),
                     child: IntrinsicHeight(
                       child: Padding(
@@ -254,12 +303,12 @@ class _LoginPageState extends State<LoginPage> {
                                     ),
                                     const SizedBox(height: 28),
                                     
-                                    // Tombol Login Hijau Emerald Premium
+                                    // Tombol Login Hijau Emerald Premium + Loading Adaptif
                                     SizedBox(
                                       width: double.infinity,
                                       height: 48,
                                       child: ElevatedButton(
-                                        onPressed: _handleLogin,
+                                        onPressed: _isLoading ? null : _handleLogin,
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: const Color(0xFF10B981),
                                           foregroundColor: Colors.white,
@@ -267,10 +316,12 @@ class _LoginPageState extends State<LoginPage> {
                                           shadowColor: const Color(0xFF10B981).withOpacity(0.3),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                         ),
-                                        child: const Text(
-                                          'LOGIN TO SYSTEM', 
-                                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1),
-                                        ),
+                                        child: _isLoading 
+                                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                                            : const Text(
+                                                'LOGIN TO SYSTEM', 
+                                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1),
+                                              ),
                                       ),
                                     ),
                                   ],
@@ -278,10 +329,9 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                             ),
                             
-                            // Mendorong footer secara dinamis agar selalu di dasar layar bawah
                             const Spacer(), 
                             
-                            // FIX: FOOTER LOGIN SEWAJARNYA & PREMIUM
+                            // FOOTER LOGIN
                             const Column(
                               children: [
                                 Text(
@@ -295,7 +345,7 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 16), // Jarak aman dari pinggiran bawah layar
+                            const SizedBox(height: 16), 
                           ],
                         ),
                       ),

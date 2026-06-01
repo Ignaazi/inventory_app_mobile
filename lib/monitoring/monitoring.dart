@@ -172,7 +172,7 @@ class _MonitoringAllPageState extends State<MonitoringAllPage> {
                               ),
                               borderData: FlBorderData(show: false),
                               lineBarsData: [
-                                // 📊 LINE GRADIENT 1: IN (BLUE 3D SHADOW VOLUME)
+                                
                                 LineChartBarData(
                                   spots: const [FlSpot(0, 120), FlSpot(1, 150), FlSpot(2, 100), FlSpot(3, 180), FlSpot(4, 140), FlSpot(5, 210), FlSpot(6, 190)],
                                   isCurved: true, 

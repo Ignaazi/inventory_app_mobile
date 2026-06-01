@@ -2,22 +2,30 @@ import 'package:flutter/material.dart';
 
 import 'costing/costing.dart';
 import 'engineering/engineering.dart';
-// Import komponen dasar bawaan proyek lu
 import 'footer.dart';
-import 'header.dart';
+import 'header.dart'; // Import file header baru di atas
 import 'lihat_semua/lihat_semua.dart';
 import 'main.dart';
 import 'monitoring/monitoring.dart';
 import 'production/production.dart';
-import 'scanner.dart'; // Tetap di folder luar bersama dashboard
+import 'scanner.dart';
 import 'system_logs/system_logs.dart';
-// 📁 JALUR IMPORT BARU SESUAI FOLDER MASING-MASING
 import 'user_management/user_management.dart';
 
 class DashboardAdminPage extends StatefulWidget {
   final String nik;
+  // 🟢 UPDATE PRESISI: Mengubah parameter name menjadi fullName & menambahkan field role dari DB
+  final String? fullName;
+  final String? role;
+  final String? profilePhotoPath;
 
-  const DashboardAdminPage({super.key, required this.nik});
+  const DashboardAdminPage({
+    super.key, 
+    required this.nik,
+    this.fullName, // 👈 Menangkap nama lengkap user
+    this.role,     // 👈 Menangkap role (Admin/Costing/Production/Engineering)
+    this.profilePhotoPath,
+  });
 
   @override
   State<DashboardAdminPage> createState() => _DashboardAdminPageState();
@@ -64,6 +72,7 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
       backgroundColor: backgroundColor,
       body: Column(
         children: [
+          // 🟢 Kunci Sinkronisasi: Mengalirkan data fullName dan role ke struktur Header terbaru
           DashboardHeader(
             pageTitle: _pageTitles[_selectedIndex],
             isDarkMode: _isDarkMode,
@@ -74,6 +83,10 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
                 MaterialPageRoute(builder: (context) => const LoginPage()),
               );
             },
+            userName: widget.fullName,         // 👈 Sekarang mengirimkan Nama Lengkap asli
+            userRole: widget.role,             // 👈 Mengirimkan role dinamis (Admin/Costing/Engineering/Production)
+            userNim: widget.nik,               // Mengirim NIK
+            profilePhotoPath: widget.profilePhotoPath, // Mengirim path foto
           ),
           Expanded(
             child: IndexedStack(
@@ -119,7 +132,7 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
               physics: const BouncingScrollPhysics(),
               onPageChanged: (int page) => setState(() => _currentPage = page),
               children: [
-                _buildSlideCard3DFull(Icons.shield_rounded, 'NIK: ${widget.nik}', 'Otorisasi: Super Admin Level', _isDarkMode ? [const Color(0xFF1E40AF), const Color(0xFF0F172A)] : [const Color(0xFF1E40AF), const Color(0xFF3B82F6)]),
+                _buildSlideCard3DFull(Icons.shield_rounded, 'NIK: ${widget.nik}', 'Otorisasi: ${widget.role ?? "Super Admin"} Level', _isDarkMode ? [const Color(0xFF1E40AF), const Color(0xFF0F172A)] : [const Color(0xFF1E40AF), const Color(0xFF3B82F6)]),
                 _buildSlideCard3DFull(Icons.verified_user_rounded, 'Sistem Koneksi', 'Status: SAP Database Terhubung', _isDarkMode ? [const Color(0xFF065F46), const Color(0xFF0F172A)] : [const Color(0xFF10B981), const Color(0xFF059669)]),
                 _buildSlideCard3DFull(Icons.developer_mode_rounded, 'App Environment', 'Mode: Production Verified', _isDarkMode ? [const Color(0xFF7C2D12), const Color(0xFF0F172A)] : [const Color(0xFFF59E0B), const Color(0xFFD97706)]),
               ],
@@ -144,7 +157,7 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
           
           const SizedBox(height: 28),
           
-          // 📱 MAIN CONTROL GRID (8 KOTAK REQUEST LU)
+          // 📱 MAIN CONTROL GRID
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Text(
@@ -159,40 +172,32 @@ class _DashboardAdminPageState extends State<DashboardAdminPage> {
             child: GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(), 
-              crossAxisCount: 4, // Pas 4 kotak ke samping, jadi 2 baris kebawah kebuka semua
+              crossAxisCount: 4, 
               crossAxisSpacing: 8,
               mainAxisSpacing: 20,
               childAspectRatio: 0.82, 
               children: [
-                // 1. User Management
                 _customGridItem(Icons.manage_accounts_rounded, 'User Management', const Color(0xFF2563EB), cardColor, textPrimary, borderColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const UserManagementPage()));
                 }),
-                // 2. Monitoring All
                 _customGridItem(Icons.analytics_rounded, 'Monitoring All', const Color(0xFFF97316), cardColor, textPrimary, borderColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const MonitoringAllPage()));
                 }),
-                // 3. Engineering
                 _customGridItem(Icons.engineering_rounded, 'Engineering', const Color(0xFF0EA5E9), cardColor, textPrimary, borderColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const EngineeringPage()));
                 }),
-                // 4. Production
                 _customGridItem(Icons.precision_manufacturing_rounded, 'Production', const Color(0xFF10B981), cardColor, textPrimary, borderColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductionPage()));
                 }),
-                // 5. Costing
                 _customGridItem(Icons.monetization_on_rounded, 'Costing', const Color(0xFFEAB308), cardColor, textPrimary, borderColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const CostingPage()));
                 }),
-                // 6. Scan (Pindah Tab Scanner Utama)
                 _customGridItem(Icons.qr_code_scanner_rounded, 'Scan', const Color(0xFF8B5CF6), cardColor, textPrimary, borderColor, () {
-                  setState(() { _selectedIndex = 1; }); // Langsung ganti tab bawah ke scanner
+                  setState(() { _selectedIndex = 1; }); 
                 }),
-                // 7. System Logs
                 _customGridItem(Icons.history_toggle_off_rounded, 'System Logs', const Color(0xFFF43F5E), cardColor, textPrimary, borderColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const SystemLogsPage()));
                 }),
-                // 8. Lihat Semua
                 _customGridItem(Icons.grid_view_rounded, 'Lihat Semua', const Color(0xFF64748B), cardColor, textPrimary, borderColor, () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const LihatSemuaPage()));
                 }),

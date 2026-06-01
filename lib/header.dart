@@ -6,16 +6,33 @@ class DashboardHeader extends StatelessWidget {
   final VoidCallback onThemeToggle;
   final VoidCallback onLogout;
 
+  // 🟢 Dipertahankan opsional agar halaman lain aman tidak ikut error
+  final String? userName;          // Sekarang diplot khusus untuk NAMA LENGKAP user
+  final String? userRole;          // 🟢 BARU: Menampung data role (Admin/Costing/Production/Engineering)
+  final String? userNim;           // Menampung data NIK/NIM
+  final String? profilePhotoPath;
+
   const DashboardHeader({
     super.key,
     required this.pageTitle,
     required this.isDarkMode,
     required this.onThemeToggle,
     required this.onLogout,
+    this.userName,          
+    this.userRole,          // 👈 Ditambahkan ke constructor
+    this.userNim,           
+    this.profilePhotoPath,  
   });
 
   @override
   Widget build(BuildContext context) {
+    // Jalur asset storage Laravel lu
+    const String baseUrl = 'http://10.0.2.2:8000/storage/';
+    
+    // Fallback data jika null (misal dari halaman monitoring yang panggil tanpa parameter)
+    final String displayNama = userName ?? 'Administrator';
+    final String displayRole = userRole ?? 'Staff';
+
     return Container(
       padding: EdgeInsets.only(
         top: MediaQuery.of(context).padding.top + 12, 
@@ -50,24 +67,36 @@ class DashboardHeader extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                // 👤 ICON MUKA USER (KOSONGAN BERGAYA MODERN)
+                // 👤 AVATAR FOTO PROFIL
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white.withOpacity(0.25), width: 1.5),
                   ),
-                  child: Icon(
-                    Icons.person_rounded, 
-                    color: Colors.white.withOpacity(0.9), 
-                    size: 26,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(100),
+                    child: profilePhotoPath != null && profilePhotoPath!.isNotEmpty
+                        ? Image.network(
+                            '$baseUrl$profilePhotoPath',
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(Icons.person_rounded, color: Colors.white.withOpacity(0.9), size: 26);
+                            },
+                          )
+                        : Center(
+                            child: Text(
+                              displayNama.isNotEmpty ? displayNama[0].toUpperCase() : 'A',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 
-                // Bagian Teks Admin Info
+                // INFO TEXT USER
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,13 +112,28 @@ class DashboardHeader extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 1),
-                      const Text(
-                        'Administrator', // 🟢 SEKARANG SUDAH UPDATE JADI ADMINISTRATOR SAJA
-                        style: TextStyle(
+                      // 🟢 Memunculkan NAMA LENGKAP USER secara Dinamis
+                      Text(
+                        displayNama, 
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
                           color: Colors.white, 
-                          fontSize: 18, 
+                          fontSize: 16, 
                           fontWeight: FontWeight.w900,
                           letterSpacing: -0.5
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      // 🟢 Memunculkan gabungan text ROLE dan NIK biar informatif & hemat ruang
+                      Text(
+                        userNim != null && userNim!.isNotEmpty 
+                            ? '$displayRole • NIK: $userNim'
+                            : displayRole,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -99,32 +143,24 @@ class DashboardHeader extends StatelessWidget {
             ),
           ),
           
-          // ICON UTILITY POJOK KANAN (NOTIFIKASI, LIGHT/DARK & LOGOUT)
+          // UTILITY BUTTONS
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 🔔 ICON LONCENG NOTIFIKASI JAYA M-BANKING WITH CHECKBOX/BADGE STATUS
               SizedBox(
                 width: 32,
                 height: 32,
                 child: IconButton(
                   padding: EdgeInsets.zero,
                   icon: Badge(
-                    label: const Text('3', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold)), // Notif angka m-banking
+                    label: const Text('3', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold)), 
                     backgroundColor: Colors.redAccent,
-                    child: Icon(
-                      Icons.notifications_none_rounded, 
-                      color: Colors.white.withOpacity(0.9),
-                      size: 20, 
-                    ),
+                    child: Icon(Icons.notifications_none_rounded, color: Colors.white.withOpacity(0.9), size: 20),
                   ),
-                  onPressed: () {
-                    // Aksi Klik Notifikasi di sini nanti, Bro
-                  },
+                  onPressed: () {},
                 ),
               ),
               const SizedBox(width: 4),
-              // Toggle Dark Mode
               SizedBox(
                 width: 32,
                 height: 32,
@@ -139,17 +175,12 @@ class DashboardHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              // Tombol Logout
               SizedBox(
                 width: 32,
                 height: 32,
                 child: IconButton(
                   padding: EdgeInsets.zero,
-                  icon: Icon(
-                    Icons.logout_rounded, 
-                    color: Colors.white.withOpacity(0.9), 
-                    size: 18, 
-                  ),
+                  icon: Icon(Icons.logout_rounded, color: Colors.white.withOpacity(0.9), size: 18),
                   onPressed: onLogout,
                 ),
               ),

@@ -1,4 +1,7 @@
+import 'dart:convert'; // 📊 Untuk decode data JSON dari Laravel
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http; // 📊 Untuk ambil data via API HTTP
 
 import '../footer.dart';
 // 📁 JALUR IMPORT GLOBAL (Menyesuaikan letak file karena berada di dalam sub-folder)
@@ -13,44 +16,50 @@ class UserManagementPage extends StatefulWidget {
 }
 
 class _UserManagementPageState extends State<UserManagementPage> {
-  int _selectedIndex = 0; // State index internal footer
-  bool _isDarkMode = false; // ⚡ DEFAULT: Light Mode (Sesuai request lu, kontrol di header)
+  int _selectedIndex = 0;
+  bool _isDarkMode = false; 
+  Future<List<dynamic>> _fetchUsers() async {
+    const String url = 'http://10.0.2.2:8000/api/users';
+    try {
+      final response = await http.get(Uri.parse(url));
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data is List ? data : (data['users'] ?? []);
+      } else {
+        throw Exception('Gagal memuat data dari server (${response.statusCode})');
+      }
+    } catch (e) {
+      throw Exception('Gagal terhubung ke jaringan: $e');
+    }
+  }
 
-  // 📦 SEEDER DATA DUMMY: 4 Role Utama Sesuai Kebutuhan Internal PT Lu
-  final List<Map<String, String>> _usersList = [
-    {
-      'nama': 'Muhammad Ignazi',
-      'nik': 'SX-202601',
-      'role': 'Administrator',
-      'pass': 'admin123#',
-      'initial': 'MI',
-      'color': '0xFF1E40AF' // Deep Blue
-    },
-    {
-      'nama': 'Eko Prasetyo',
-      'nik': 'SX-202605',
-      'role': 'Engineering',
-      'pass': 'engpass2026',
-      'initial': 'EP',
-      'color': '0xFF0EA5E9' // Sky Blue
-    },
-    {
-      'nama': 'Siti Rahmawati',
-      'nik': 'SX-202609',
-      'role': 'Production',
-      'pass': 'prodliner77',
-      'initial': 'SR',
-      'color': '0xFF10B981' // Emerald Green
-    },
-    {
-      'nama': 'Ahmad Fauzi',
-      'nik': 'SX-202612',
-      'role': 'Costing',
-      'pass': 'costingsecured',
-      'initial': 'AF',
-      'color': '0xFFEAB308' // Amber Yellow
-    },
-  ];
+  // 🟢 FUNGSI BARU: Bikin inisial otomatis dari nama table DB (misal: Muhammad Ignazi -> MI)
+  String _getInitial(String name) {
+    if (name.isEmpty) return 'U';
+    List<String> words = name.trim().split(' ');
+    if (words.length > 1) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return words[0][0].toUpperCase();
+  }
+
+  // 🟢 FUNGSI BARU: Ambil warna acak/tetap untuk avatar berdasarkan role karyawan
+  Color _getRoleColor(String? role) {
+    switch (role?.toLowerCase()) {
+      case 'administrator':
+      case 'admin':
+        return const Color(0xFF1E40AF); // Deep Blue
+      case 'engineering':
+        return const Color(0xFF0EA5E9); // Sky Blue
+      case 'production':
+        return const Color(0xFF10B981); // Emerald Green
+      case 'costing':
+        return const Color(0xFFEAB308); // Amber Yellow
+      default:
+        return const Color(0xFF64748B); // Slate Grey
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +75,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       backgroundColor: backgroundColor,
       body: Column(
         children: [
-          // 🛑 1. STICKY HEADER FIXED (Mengontrol saklar tema global/lokal)
+          // 🛑 1. STICKY HEADER FIXED
           DashboardHeader(
             pageTitle: 'USER MANAGEMENT',
             isDarkMode: _isDarkMode,
@@ -79,167 +88,211 @@ class _UserManagementPageState extends State<UserManagementPage> {
             },
           ),
 
-          // 📜 2. SCROLLABLE AREA DATA
+          // 📜 2. AREA DATA DENGAN ASYNC FUTUREBUILDER
           Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Back Link Minimalis ke Dashboard
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.arrow_back_ios_new_rounded, size: 12, color: siixBlue),
-                        SizedBox(width: 6),
-                        Text('Dashboard', style: TextStyle(color: siixBlue, fontSize: 13, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Header List Title & Tombol Tambah Bulat (+) Minimalis
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween, // ⚡ FIXED: Sudah memakai spaceBetween resmi Flutter
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+            child: FutureBuilder<List<dynamic>>(
+              future: _fetchUsers(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: siixBlue),
+                  );
+                } else if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          Icon(Icons.cloud_off_rounded, size: 48, color: Colors.red.shade400),
+                          const SizedBox(height: 12),
                           Text(
-                            'DATABASE ACCOUNT',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: textPrimary, letterSpacing: 1.1),
+                            'Gagal Memuat Database\n${snapshot.error}',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: textSecondary, fontSize: 13, height: 1.4),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Total: ${_usersList.length} Hak Akses Terdaftar',
-                            style: TextStyle(fontSize: 11, color: textSecondary, fontWeight: FontWeight.w500),
+                          const SizedBox(height: 12),
+                          ElevatedButton.icon(
+                            onPressed: () => setState(() {}),
+                            icon: const Icon(Icons.refresh_rounded, size: 16),
+                            label: const Text('Coba Lagi'),
+                          )
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                final usersList = snapshot.data ?? [];
+
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Back Link Minimalis ke Dashboard
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.arrow_back_ios_new_rounded, size: 12, color: siixBlue),
+                            SizedBox(width: 6),
+                            Text('Dashboard', style: TextStyle(color: siixBlue, fontSize: 13, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Header List Title & Tombol Tambah Bulat (+) Minimalis
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'DATABASE ACCOUNT',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: textPrimary, letterSpacing: 1.1),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Total: ${usersList.length} Hak Akses Terdaftar',
+                                style: TextStyle(fontSize: 11, color: textSecondary, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                          
+                          // ➕ TOMBOL TAMBAH BULAT ICON
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: const BoxDecoration(
+                              color: siixBlue,
+                              shape: BoxShape.circle,
+                            ),
+                            child: InkWell(
+                              onTap: () => _showActionSnackbar('Mengarahkan ke halaman form Create User baru...'),
+                              customBorder: const CircleBorder(),
+                              child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                            ),
                           ),
                         ],
                       ),
-                      
-                      // ➕ TOMBOL TAMBAH BULAT ICON (Untuk dialihkan ke page pendaftaran baru nanti)
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: const BoxDecoration(
-                          color: siixBlue,
-                          shape: BoxShape.circle,
+                      const SizedBox(height: 16),
+
+                      // Jika data di table kosong
+                      if (usersList.isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 40),
+                            child: Text('Tidak ada user terdaftar di database.', style: TextStyle(color: textSecondary)),
+                          ),
                         ),
-                        child: InkWell(
-                          onTap: () => _showActionSnackbar('Mengarahkan ke halaman form Create User baru...'),
-                          customBorder: const CircleBorder(),
-                          child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                        ),
+
+                      // 📜 BUILDER LOOPING DATA ASLI KARYAWAN FROM API
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: usersList.length,
+                        itemBuilder: (context, index) {
+                          final user = usersList[index];
+                          
+                          // Mapping field DB XAMPP lu (ganti string key-nya sesuai column table mysql lu)
+                          final String userNama = user['name'] ?? 'No Name';
+                          final String userNik = user['nim'] ?? user['nik'] ?? '---';
+                          final String userRole = user['role'] ?? 'Staff';
+                          final String userInitial = _getInitial(userNama);
+                          final Color userColor = _getRoleColor(userRole);
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: cardColor,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: borderColor),
+                              boxShadow: [
+                                if (!_isDarkMode)
+                                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                // 👤 AVATAR IDENTITAS USER OTOMATIS
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: userColor.withOpacity(0.12),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      userInitial,
+                                      style: TextStyle(color: userColor, fontWeight: FontWeight.w900, fontSize: 14),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                
+                                // 📝 INFORMASI REAL AKUN
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        userNama,
+                                        style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        '$userRole  •  NIK: $userNik',
+                                        style: TextStyle(color: textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                // 🛠️ TOMBOL AKSI CRUD BERBENTUK BULAT
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _buildRoundActionButton(
+                                      icon: Icons.visibility_outlined,
+                                      color: Colors.blue.shade600,
+                                      onTap: () => _showActionSnackbar('Preview akun $userNama'),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    _buildRoundActionButton(
+                                      icon: Icons.edit_outlined,
+                                      color: Colors.amber.shade700,
+                                      onTap: () => _showActionSnackbar('Membuka edit form untuk $userNama'),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    _buildRoundActionButton(
+                                      icon: Icons.delete_outline_rounded,
+                                      color: Colors.red.shade600,
+                                      onTap: () => _showDeleteConfirmation(userNik, userNama),
+                                    ),
+                                  ],
+                                )
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-
-                  // 📜 BUILDER LOOPING DATA KARYAWAN
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _usersList.length,
-                    itemBuilder: (context, index) {
-                      final user = _usersList[index];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: cardColor,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: borderColor),
-                          boxShadow: [
-                            if (!_isDarkMode)
-                              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            // 👤 AVATAR IDENTITAS USER (BULAT)
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: Color(int.parse(user['color']!)).withOpacity(0.12),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  user['initial']!,
-                                  style: TextStyle(color: Color(int.parse(user['color']!)), fontWeight: FontWeight.w900, fontSize: 14),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            
-                            // 📝 KUMPULAN INFORMASI DETAIL AKUN
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    user['nama']!,
-                                    style: TextStyle(color: textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    '${user['role']}  •  NIK: ${user['nik']}',
-                                    style: TextStyle(color: textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Pass: ${user['pass']}',
-                                    style: TextStyle(color: textSecondary.withOpacity(0.7), fontSize: 11, fontFamily: 'monospace'),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // 🛠️ TOMBOL AKSI CRUD BERBENTUK BULAT (Preview, Edit, Delete)
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // 👁️ 1. PREVIEW DATA
-                                _buildRoundActionButton(
-                                  icon: Icons.visibility_outlined,
-                                  color: Colors.blue.shade600,
-                                  onTap: () => _showActionSnackbar('Preview akun ${user['nama']}'),
-                                ),
-                                const SizedBox(width: 6),
-                                
-                                // ✏️ 2. EDIT DATA
-                                _buildRoundActionButton(
-                                  icon: Icons.edit_outlined,
-                                  color: Colors.amber.shade700,
-                                  onTap: () => _showActionSnackbar('Membuka edit form untuk ${user['nama']}'),
-                                ),
-                                const SizedBox(width: 6),
-                                
-                                // 🗑️ 3. DELETE DATA
-                                _buildRoundActionButton(
-                                  icon: Icons.delete_outline_rounded,
-                                  color: Colors.red.shade600,
-                                  onTap: () => _showDeleteConfirmation(index, user['nama']!),
-                                ),
-                              ],
-                            )
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ],
       ),
 
-      // 🛑 3. STICKY FOOTER FIXED (Komunikasi dua arah balik ke dashboard)
+      // 🛑 3. STICKY FOOTER FIXED
       bottomNavigationBar: DashboardFooter(
         selectedIndex: _selectedIndex,
         isDarkMode: _isDarkMode,
@@ -250,12 +303,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
           setState(() {
             _selectedIndex = index;
           });
-          
           if (index == 0) {
-            // Jika diklik Home (Overview), langsung tutup page dan kembali ke dashboard
             Navigator.pop(context);
           } else {
-            // ⚡ TRICK BACKWARD INDEX: Tutup page user_management sambil mengirim perintah pindah index tab ke dashboard
             Navigator.pop(context, index);
           }
         },
@@ -269,7 +319,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1), // Efek background pudar sewarna ikon
+        color: color.withOpacity(0.1),
         shape: BoxShape.circle,
       ),
       child: InkWell(
@@ -280,7 +330,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
     );
   }
 
-  // Snack Bar Notifikasi Trigger Aksi
   void _showActionSnackbar(String message) {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -292,8 +341,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
     );
   }
 
-  // Dialog Konfirmasi Hapus Data Akun
-  void _showDeleteConfirmation(int index, String nama) {
+  // Dialog Konfirmasi Hapus Data Akun (Dipetakan berdasarkan NIK/ID dari backend)
+  void _showDeleteConfirmation(String nik, String nama) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -304,9 +353,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal', style: TextStyle(color: Colors.grey))),
           TextButton(
             onPressed: () {
-              setState(() { _usersList.removeAt(index); });
               Navigator.pop(context);
-              _showActionSnackbar('Akun $nama sukses dihapus!');
+              _showActionSnackbar('Fungsi backend delete untuk NIK $nik dipicu.');
+              // Nanti lu bisa taruh fungsi http.post / http.delete di sini ke endpoint hapus user.
             }, 
             child: const Text('Hapus', style: TextStyle(color: Colors.redAccent))
           ),
